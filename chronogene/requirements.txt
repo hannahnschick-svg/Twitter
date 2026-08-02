@@ -1,0 +1,5 @@
+# Backend (multi-agent research framework)
+anthropic>=0.116        # Claude Messages API — the research team's model layer
+requests>=2.31          # public NCBI E-utilities (GEO) connector
+
+# The web console (web/) is static HTML/CSS/JS — no build step, no dependencies.
