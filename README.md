@@ -1,25 +1,45 @@
 # X Longevity Daily Digest
 
 An automated agent that searches X (Twitter) every night for
-longevity-related/adjacent posts and delivers a digest (links + tweet
-summaries, grouped by topic) every morning at 8am ET, with a short push
-notification pointing to it.
+longevity-related/adjacent posts and emails a digest every morning at
+8am ET: links + takeaways grouped by topic, in-voice tweet drafts for
+each post, a citation-checked deep-dive thread every 4th post, and a
+standalone thought-leadership take -- plus a short push notification.
 
 ## How it works
 
-1. A scheduled Routine fires daily at 8am ET in a fresh session.
+1. A scheduled Routine ("Daily longevity digest") fires daily at 8am ET
+   in a fresh session. Its prompt is managed in the Routines UI
+   (`claude.ai/code/routines`), not in this repo, since trigger-editing
+   tools aren't reliably callable from within a session -- see the
+   "Editing the routine" note below.
 2. That session runs `scripts/x_longevity_search.py`, which calls the X
    API v2 recent-search endpoint for:
    - a set of longevity keywords/phrases (`config.py: KEYWORDS`)
    - posts from a curated list of longevity-focused accounts (`config.py: ACCOUNTS`)
    - restricted to the last 24 hours, English, no retweets
 3. Claude reads the raw results, drops anything not actually
-   longevity-related, groups the rest into topics, and writes a digest
-   (topic headers, each post's link + a one-line takeaway) as its reply
-   in that session.
-4. Claude sends a short push notification (e.g. "Longevity digest:
-   14 posts across 3 topics (senolytics, NAD+, VO2 max)") so you know
-   it's ready without needing the full text pushed to your phone.
+   longevity-related, and groups the rest into topics.
+4. Per `tone_guide.md` (the @descidecoded voice brief), it drafts:
+   - 1-2 short tweet drafts (organic and/or quote-tweet) for 3 of every
+     4 posts
+   - a 4-8 tweet deep-dive thread for every 4th post, citing real
+     peer-reviewed papers found via web search and independently
+     re-verified before inclusion
+   - one standalone "thought leadership" take per digest, not tied to
+     any single post
+5. The full digest is emailed to `hannahschick01@gmail.com` via
+   `scripts/send_email.py` (Gmail SMTP with an App Password -- see
+   setup below), and a short push notification points to it.
+
+### Editing the routine
+
+`create_trigger`/`update_trigger`/`fire_trigger` calls from within a
+chat session have intermittently required approval that doesn't
+surface properly, so the reliable way to change the routine's prompt is
+directly in the UI: `claude.ai/code/routines` -> the routine -> pencil
+icon -> edit **Instructions** -> **Save**. Ask Claude for the current
+full prompt text to paste in if you're changing it.
 
 ## Setup
 
