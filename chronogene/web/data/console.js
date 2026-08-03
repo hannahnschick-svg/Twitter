@@ -1,7 +1,7 @@
 window.CONSOLE_DATA = {
   "institute": "Chronogene Institute",
   "subtitle": "Board Console",
-  "generated_at": "Tuesday 12 August 2026 · 07:00",
+  "generated_at": "Monday 03 August 2026 · 07:00",
   "sample_banner": "SAMPLE DATA. NOTHING HERE IS A REAL RESULT.",
   "director_note": {
     "avatar": "CI",
@@ -13,7 +13,7 @@ window.CONSOLE_DATA = {
       "**Everything else is running.** Spend is tracking at about two thirds of the monthly ceiling. Nothing is broken."
     ]
   },
-  "decisions_meta": "2 decisions · oldest waiting 1 day",
+  "decisions_meta": "2 decisions",
   "decisions": [
     {
       "status": "NEEDS YOU",
@@ -24,7 +24,7 @@ window.CONSOLE_DATA = {
       "options": [
         {
           "key": "SEND IT",
-          "text": "We prepare the submission package and hand it to you to upload. Roughly a week of back and forth with the journal after that."
+          "text": "We prepare the submission package and hand it to you to upload. Roughly a week of back and forth after that."
         },
         {
           "key": "HOLD IT",
@@ -32,7 +32,7 @@ window.CONSOLE_DATA = {
         },
         {
           "key": "PICK A VENUE",
-          "text": "Tell us the journal and we will reformat to fit it. Adds about two days."
+          "text": "Tell us the journal and we reformat to fit it. Adds about two days."
         }
       ],
       "if_nothing": "the paper stays held and we ask again on Friday.",
@@ -83,42 +83,42 @@ window.CONSOLE_DATA = {
     "stats": [
       {
         "label": "Confirmed findings",
-        "value": "7",
+        "value": "15",
         "suffix": "/ 23 all time",
-        "desc": "Claims that survived independent checking. **Up 2** on last month.",
+        "desc": "Claims that survived independent checking.",
         "bar": null
       },
       {
         "label": "Questions ruled out",
-        "value": "11",
+        "value": "8",
         "suffix": "",
         "desc": "Dead ends closed and written down. These count as output, not failure.",
         "bar": null
       },
       {
         "label": "Results that reproduced first time",
-        "value": "94",
+        "value": "100",
         "suffix": "%",
         "desc": "A second team re-runs every result from scratch. **Target 90 or above.**",
-        "bar": 0.94
+        "bar": 1.0
       },
       {
         "label": "Every claim backed by evidence",
         "value": "100",
         "suffix": "%",
-        "desc": "Each sentence in a paper traces to a specific result. **Anything under 100 is an alarm.**",
+        "desc": "Each claim traces to a specific result. **Anything under 100 is an alarm.**",
         "bar": 1.0
       },
       {
         "label": "Question to answer",
         "value": "18",
         "suffix": "days median",
-        "desc": "From asking a question to having a checked answer. **Was 24** last month.",
+        "desc": "From asking a question to having a checked answer.",
         "bar": null
       },
       {
         "label": "Cost per confirmed finding",
-        "value": "$412",
+        "value": "$123",
         "suffix": "",
         "desc": "Total spend divided by findings that survived checking.",
         "bar": null
@@ -158,22 +158,22 @@ window.CONSOLE_DATA = {
   },
   "evidence": {
     "title": "How strong the evidence is",
-    "subtitle": "All 23 confirmed findings, by how much weight they can carry.",
+    "subtitle": "All 15 confirmed findings, by how much weight they can carry.",
     "segments": [
       {
         "count": 4,
         "label": "Strongest. Repeated in separate data. Can carry a paper."
       },
       {
-        "count": 9,
+        "count": 6,
         "label": "Solid. One well-powered study, not yet repeated."
       },
       {
-        "count": 7,
+        "count": 3,
         "label": "Promising. Rests on one data source or one assumption."
       },
       {
-        "count": 3,
+        "count": 2,
         "label": "Early. Suggestive only. Never the headline of a paper."
       }
     ]
@@ -183,36 +183,188 @@ window.CONSOLE_DATA = {
     "meta": "Newest first",
     "items": [
       {
-        "badge": "CONFIRMED",
-        "strength": "SOLID",
-        "time": "yesterday",
-        "title": "People whose blood shows faster ageing also carry a stronger family history of long life, in the opposite direction to what was expected.",
-        "desc": "Checked by two separate teams. The effect is small but consistent, and it survived adjusting for the obvious explanations including smoking and blood cell counts.",
-        "caveat": "Holds for: people of European ancestry, aged 42 to 69, measured in blood. It has not been shown in other groups or other tissues, and we do not claim it has."
-      },
-      {
         "badge": "RULED OUT",
         "strength": null,
-        "time": "2 days ago",
-        "title": "The telomere gene we were chasing does not explain the ageing signal.",
-        "desc": "Tested properly and it is not there. The study was large enough that if a real effect of the size people have claimed existed, we would have seen it. Written up so nobody here repeats it. If a much larger dataset is released, it becomes worth another look.",
+        "time": "day 4",
+        "title": "A published link between one gene variant and lifespan does not hold up.",
+        "desc": "The original claim traces back to a single small study cited many times without re-testing. We re-tested it. It does not replicate.",
         "caveat": null
       },
       {
         "badge": "RULED OUT",
         "strength": null,
-        "time": "4 days ago",
-        "title": "A published link between one gene variant and lifespan does not hold up.",
-        "desc": "The original claim traces back to a single small study that has been cited many times without anyone re-testing it. We re-tested it. It does not replicate.",
+        "time": "day 3",
+        "title": "The telomere gene we were chasing does not explain the ageing signal.",
+        "desc": "Tested properly and it is not there. The study was large enough that a real effect of the claimed size would have shown. Written up so nobody here repeats it.",
+        "caveat": null
+      },
+      {
+        "badge": "CONFIRMED",
+        "strength": "SOLID",
+        "time": "day 2",
+        "title": "People whose blood shows faster ageing also carry a stronger family history of long life, in the opposite direction to what was expected.",
+        "desc": "Checked by two separate teams. The effect is small but consistent, and it survived adjusting for the obvious explanations including smoking and blood cell counts.",
+        "caveat": "Holds for: people of European ancestry, aged 42 to 69, measured in blood."
+      },
+      {
+        "badge": "CONFIRMED",
+        "strength": "STRONGEST",
+        "time": "day 1",
+        "title": "A regulatory region near a known longevity gene is switched on differently in older tissue, and the pattern repeats across three independent datasets.",
+        "desc": "Repeated in data from three separate studies that do not share people, which is why this one is rated strongest. It is the central claim of the paper waiting on you.",
+        "caveat": "Holds for: blood and liver tissue, ages 40 to 80. Not shown in brain."
+      },
+      {
+        "badge": "CONFIRMED",
+        "strength": "STRONGEST",
+        "time": "day 0",
+        "title": "Archived confirmed finding 5",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "RULED OUT",
+        "strength": null,
+        "time": "day 0",
+        "title": "Archived confirmed finding 6",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "CONFIRMED",
+        "strength": "SOLID",
+        "time": "day 0",
+        "title": "Archived confirmed finding 7",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "CONFIRMED",
+        "strength": "PROMISING",
+        "time": "day 0",
+        "title": "Archived confirmed finding 8",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "RULED OUT",
+        "strength": null,
+        "time": "day 0",
+        "title": "Archived confirmed finding 9",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
         "caveat": null
       },
       {
         "badge": "CONFIRMED",
         "strength": "STRONGEST",
-        "time": "9 days ago",
-        "title": "A regulatory region near a known longevity gene is switched on differently in older tissue, and the pattern repeats across three independent datasets.",
-        "desc": "Repeated in data from three separate studies that do not share people, which is why this one is rated strongest. It is the central claim of the paper waiting on you above.",
-        "caveat": "Holds for: blood and liver tissue, ages 40 to 80. Not shown in brain."
+        "time": "day 0",
+        "title": "Archived confirmed finding 10",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "CONFIRMED",
+        "strength": "SOLID",
+        "time": "day 0",
+        "title": "Archived confirmed finding 11",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "RULED OUT",
+        "strength": null,
+        "time": "day 0",
+        "title": "Archived confirmed finding 12",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "CONFIRMED",
+        "strength": "PROMISING",
+        "time": "day 0",
+        "title": "Archived confirmed finding 13",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "CONFIRMED",
+        "strength": "EARLY",
+        "time": "day 0",
+        "title": "Archived confirmed finding 14",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "RULED OUT",
+        "strength": null,
+        "time": "day 0",
+        "title": "Archived confirmed finding 15",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "CONFIRMED",
+        "strength": "SOLID",
+        "time": "day 0",
+        "title": "Archived confirmed finding 16",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "CONFIRMED",
+        "strength": "SOLID",
+        "time": "day 0",
+        "title": "Archived confirmed finding 17",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "RULED OUT",
+        "strength": null,
+        "time": "day 0",
+        "title": "Archived confirmed finding 18",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "CONFIRMED",
+        "strength": "EARLY",
+        "time": "day 0",
+        "title": "Archived confirmed finding 19",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "CONFIRMED",
+        "strength": "STRONGEST",
+        "time": "day 0",
+        "title": "Archived confirmed finding 20",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "RULED OUT",
+        "strength": null,
+        "time": "day 0",
+        "title": "Archived confirmed finding 21",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "CONFIRMED",
+        "strength": "SOLID",
+        "time": "day 0",
+        "title": "Archived confirmed finding 22",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
+      },
+      {
+        "badge": "CONFIRMED",
+        "strength": "PROMISING",
+        "time": "day 0",
+        "title": "Archived confirmed finding 23",
+        "desc": "Confirmed in an earlier cycle; retained for the running totals.",
+        "caveat": null
       }
     ]
   },
@@ -336,7 +488,7 @@ window.CONSOLE_DATA = {
   },
   "lab": {
     "title": "The lab right now",
-    "meta": "20 working",
+    "meta": "6 working",
     "teams": [
       {
         "name": "Genetics group",
