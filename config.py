@@ -4,6 +4,7 @@ Edit KEYWORDS and ACCOUNTS to tune what counts as "longevity-adjacent."
 Handles in ACCOUNTS are not guaranteed to be correct/current -- verify
 and adjust before relying on them.
 """
+import os
 
 # Keyword/phrase queries (OR'd together). Keep each list short enough that
 # the combined query stays under the API's query-length limit; the search
@@ -35,11 +36,11 @@ ACCOUNTS = [
     "hubermanlab",
 ]
 
-# API host. api.twitter.com and api.x.com serve the same v2 endpoints, but
-# each must be on the cloud environment's network allowlist separately.
-# api.twitter.com is the current default because it's the one allowlisted;
-# switch to "api.x.com" only after adding that host to the allowlist too.
-API_HOST = "api.twitter.com"
+# API host. api.twitter.com and api.x.com serve the same v2 endpoints.
+# Locally either works. Inside the Claude Code cloud sandbox only hosts on
+# the environment's network allowlist resolve, and api.x.com is not on it
+# by default -- set X_API_HOST=api.twitter.com there, or allowlist api.x.com.
+API_HOST = os.environ.get("X_API_HOST", "api.x.com")
 
 # How far back to look for posts, in hours.
 LOOKBACK_HOURS = 24

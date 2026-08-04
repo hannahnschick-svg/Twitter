@@ -1,165 +1,172 @@
 # X Longevity Daily Digest
 
-An automated agent that searches X (Twitter) every night for
-longevity-related/adjacent posts and emails a digest every morning at
-8am ET: links + takeaways grouped by topic, in-voice tweet drafts for
-each post, a citation-checked deep-dive thread every 4th post, and a
-standalone thought-leadership take -- plus a short push notification.
+Scans X for longevity-related and adjacent posts from the last 24 hours,
+drafts tweets about them in the @descidecoded voice, and saves those
+drafts straight into X's Drafts folder for review. Nothing is ever posted
+automatically.
 
-## How it works
+Each run produces:
 
-1. A scheduled Routine ("Daily longevity digest") fires daily at 8am ET
-   in a fresh session. Its prompt is managed in the Routines UI
-   (`claude.ai/code/routines`), not in this repo, since trigger-editing
-   tools aren't reliably callable from within a session -- see the
-   "Editing the routine" note below.
-2. That session runs `scripts/x_longevity_search.py`, which calls the X
-   API v2 recent-search endpoint for:
-   - a set of longevity keywords/phrases (`config.py: KEYWORDS`)
-   - posts from a curated list of longevity-focused accounts (`config.py: ACCOUNTS`)
-   - restricted to the last 24 hours, English, no retweets
-3. Claude reads the raw results, drops anything not actually
-   longevity-related, and groups the rest into topics.
-4. Per `tone_guide.md` (the @descidecoded voice brief), it drafts:
-   - 1-2 short tweet drafts (organic and/or quote-tweet) for 3 of every
-     4 posts
-   - a 4-8 tweet deep-dive thread for every 4th post, citing real
-     peer-reviewed papers found via web search and independently
-     re-verified before inclusion
-   - one standalone "thought leadership" take per digest, not tied to
-     any single post
-5. The full digest is emailed via `scripts/send_email.py` (Resend HTTPS
-   API -- see setup below), and a short push notification points to it.
+- short drafts (organic or quote-tweet) for three of every four posts
+- a deep-dive thread for every fourth post, citing peer-reviewed papers
+  that are independently re-verified before they make the cut
+- one thought-leadership take per run, not tied to any single post
 
-### Editing the routine
-
-`create_trigger`/`update_trigger`/`fire_trigger` calls from within a
-chat session have intermittently required approval that doesn't
-surface properly, so the reliable way to change the routine's prompt is
-directly in the UI: `claude.ai/code/routines` -> the routine -> pencil
-icon -> edit **Instructions** -> **Save**. Ask Claude for the current
-full prompt text to paste in if you're changing it.
-
-## Setup
-
-### 1. Get X API access with search permission
-
-You need a developer account and app at the X Developer Portal with a
-tier that includes the **recent search** endpoint
-(`GET /2/tweets/search/recent`). The free tier does not include search
-over other users' posts -- you need at least the paid **Basic** tier (or
-higher). Steps:
-
-1. Go to the X Developer Portal and create a Project + App (or use an
-   existing one).
-2. Subscribe to a tier that includes recent search (check current
-   pricing/limits on the portal -- these change over time).
-3. In the app's "Keys and tokens" tab, generate a **Bearer Token**.
-
-### 2. Set the token
-
-Add it as an environment variable named `X_BEARER_TOKEN` in the cloud
-environment's configuration (not in chat, not committed to the repo).
-
-### 3. Set up email delivery
-
-Delivery uses the **Resend** HTTPS API rather than SMTP. This is not a
-preference -- the cloud sandbox has no direct network egress, so a raw
-socket to `smtp.gmail.com:465` fails at the network layer no matter what
-is allowlisted. Only HTTPS-through-the-proxy works, which rules out
-`smtplib` entirely.
-
-1. Sign up at resend.com and create an API key (the free tier is far
-   more than one email a day needs).
-2. Add these environment variables alongside `X_BEARER_TOKEN`:
-   - `RESEND_API_KEY` -- the key from step 1
-   - `EMAIL_TO` -- where the digest should land
-   - `EMAIL_FROM` -- optional. Defaults to `onboarding@resend.dev`,
-     which Resend permits only for sending to your own account address.
-     To send anywhere else, verify a domain in Resend and use an address
-     on it.
-
-### 4. Allow the required domains
-
-The environment's network access defaults to a **Trusted** allowlist that
-excludes both of the hosts this project calls. Open the environment
-settings, set **Network access** to **Custom**, tick *"Also include
-default list of common package managers"*, and add:
+## Pipeline
 
 ```
-api.twitter.com
-api.resend.com
+scripts/x_longevity_search.py   ->  work/posts.json
+        (X API v2 recent search)
+
+agent, per SCHEDULED_PROMPT.md  ->  work/digest.md    (human review)
+        + tone_guide.md             work/drafts.json  (machine-readable)
+
+scripts/save_x_drafts.py        ->  X Drafts folder
+        (headed browser, save-only)
+
+scripts/send_email.py           ->  inbox  (optional, cloud runs)
 ```
 
-Add `api.x.com` too if you switch `config.API_HOST` (see Customizing).
-Anything missing here fails with `403` on the proxy's CONNECT tunnel,
-which looks like an auth error but isn't -- verify with:
+## Local setup
 
 ```bash
-curl -sS -o /dev/null https://api.twitter.com/2/tweets/search/recent
+cd /path/to/this/repo
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m playwright install chromium
 ```
 
-A `401` means the host is reachable (good). `CONNECT tunnel failed,
-response 403` means it isn't allowlisted.
+### Bearer token
 
-### 5. Test manually
+The X Developer Console app has an app **Bearer Token**. It is read only
+from the environment — never put it in source, a prompt, git, this file,
+or `SCHEDULED_PROMPT.md`.
+
+In zsh, enter it without echoing it to the terminal:
+
+```zsh
+read -s "X_BEARER_TOKEN?Paste X bearer token: "
+export X_BEARER_TOKEN
+```
+
+The token needs an API tier that includes `GET /2/tweets/search/recent`.
+The free tier does not include searching other users' posts, so this
+needs at least the paid Basic tier.
+
+### Test retrieval
 
 ```bash
-pip install -r requirements.txt
+mkdir -p work
 python3 scripts/x_longevity_search.py > work/x-posts-test.json
 python3 -m json.tool work/x-posts-test.json > /dev/null && echo "valid JSON"
 ```
 
-This writes a JSON array of matched posts. If `X_BEARER_TOKEN` is
-missing, it exits with an error explaining what's needed.
+Each entry has `id`, `url`, `author`, `author_name`, `text`, `created_at`,
+and `matched`.
 
-### 6. Enable the daily routine
+### Run a digest
 
-A Routine named **"Daily longevity digest"** fires at 8am ET
-(12:00 UTC) daily. Its prompt lives in the Routines UI, not this repo.
+```bash
+claude "$(cat SCHEDULED_PROMPT.md)"
+```
 
-**DST note:** 12:00 UTC is 8am during Eastern Daylight Time (roughly
-March-November). When clocks fall back to EST in November, this fires at
-7am ET until the cron is changed to 13:00 UTC.
+Then review `work/digest.md` before saving anything.
 
-## Customizing
+## Saving drafts to X
+
+X has no API for the Drafts folder — it's a client-only feature — so
+`save_x_drafts.py` drives a real logged-in browser.
+
+```bash
+python3 scripts/save_x_drafts.py --input work/drafts.json --dry-run  # inspect
+python3 scripts/save_x_drafts.py --input work/drafts.json            # save
+```
+
+The first run opens a browser and waits for you to log in as
+@descidecoded. The session persists in `~/.x-drafts-profile` (override
+with `X_PROFILE_DIR`), so later runs skip the login. The script never
+handles your password.
+
+How each type is saved, matching X's own flow:
+
+- **standalone and thought-leadership** — open the composer, enter the
+  draft and its source link, close, Save.
+- **quote-tweet** — open the exact original post, Repost → Quote, enter
+  the commentary, close, Save. Going through the real post is what
+  preserves the source attachment.
+- **thread** — build every post in one composer, with the primary-paper
+  link in each, then close and save the whole thread.
+
+Afterwards open Drafts → Unsent posts, verify every draft, reload, and
+verify again.
+
+### Safety
+
+The script only ever clicks the composer's close button and **Save** in
+the confirmation dialog. Every click passes through a guard that refuses
+any control labelled `Post`, `Post all`, `Publish`, or `Reply`, and that
+refuses to press `Discard` where it expects `Save`. If X changes its UI
+and a selector drifts onto a publish control, the run aborts instead of
+posting.
+
+### Account risk
+
+X actively detects browser automation. Driving a logged-in session can
+trigger a security challenge or a temporary lock on the account, and that
+risk exists regardless of the save-only guarantee above. Running headed
+and watching the first few runs is the mitigation. Copy-pasting from
+`work/digest.md` avoids the risk entirely if you'd rather not automate it.
+
+## Configuration
 
 Edit `config.py`:
 
-- `KEYWORDS` -- phrases searched for anywhere in a post.
-- `ACCOUNTS` -- handles (no `@`) whose posts are always pulled in,
-  regardless of keyword match. **Verify these are correct/current** --
-  they're a starting point, not verified handles.
-- `LOOKBACK_HOURS` -- how far back each run searches (default 24).
-- `MAX_RESULTS_PER_CALL` -- API page size (10-100).
-- `MAX_PAGES_PER_QUERY` -- pages followed per query before stopping.
-  Each page is another billed call against the monthly post-read cap.
-- `API_HOST` -- `api.twitter.com` (default) or `api.x.com`. Both serve
-  the same v2 endpoints, but each must be allowlisted separately, and
-  only `api.twitter.com` is allowlisted today.
-- `EXTRA_FILTERS` -- currently English only, no retweets, no replies.
+- `KEYWORDS` — phrases searched for anywhere in a post.
+- `ACCOUNTS` — handles (no `@`) always pulled in regardless of keyword
+  match. **Verify these are current** — they're a starting point, not
+  checked handles.
+- `LOOKBACK_HOURS` — how far back each run searches. Default 24.
+- `MAX_RESULTS_PER_CALL` — API page size, 10-100.
+- `MAX_PAGES_PER_QUERY` — pages followed per query. Each page is another
+  billed call against the monthly post-read cap.
+- `EXTRA_FILTERS` — English only, no retweets, no replies.
+- `API_HOST` — defaults to `api.x.com`, overridable with the `X_API_HOST`
+  environment variable. See the cloud note below.
 
 ### Long-form posts
 
-The search requests the `note_tweet` field and prefers it over the
-top-level `text`, because X truncates `text` for long-form posts. Without
-this the agent would draft from partial content without any sign it was
-truncated.
+The search requests `note_tweet` and prefers it over the top-level `text`,
+because X truncates `text` for long-form posts. Without this the agent
+would draft from partial content with no sign it was truncated.
 
-## Cost/rate-limit notes
+## Optional: cloud runs
 
-Each run issues a handful of API calls (one per chunk of keywords/
-accounts that fits under the query-length limit, times up to
-`MAX_PAGES_PER_QUERY` pages). Recent-search tiers have a monthly
-post-read cap -- keep an eye on usage in the developer portal,
-especially if you widen `KEYWORDS`/`ACCOUNTS` or raise the page cap.
+The same pipeline runs as a Routine at claude.ai/code/routines, which
+fires on schedule without your laptop open. Two things differ there:
 
-## Saving drafts back to X
+**Network allowlist.** The sandbox only reaches hosts on the environment's
+allowlist, and `api.x.com` is not on it by default — either add it, or set
+`X_API_HOST=api.twitter.com`, which is allowlisted and serves the same v2
+endpoints. Verify with:
 
-The digest delivers drafts as text for you to review and post yourself.
-There is no API for X's native Drafts folder -- it's a client-only
-feature -- so the only way to populate it automatically is to drive a
-logged-in browser session, which this cloud environment cannot do (no
-signed-in session, and X actively detects automation, which risks
-security challenges on the account). Copy-pasting from the email is the
-supported path.
+```bash
+curl -sS -o /dev/null https://api.x.com/2/tweets/search/recent
+```
+
+`401` means reachable. `CONNECT tunnel failed, response 403` means it
+isn't allowlisted.
+
+**Email instead of browser drafts.** The sandbox has no signed-in browser,
+so `save_x_drafts.py` can't run there. `scripts/send_email.py` mails the
+digest instead, using the Resend HTTPS API — not SMTP, because the sandbox
+has no direct network egress and a raw socket to port 465 fails at the
+network layer regardless of allowlisting. Set `RESEND_API_KEY` and
+`EMAIL_TO`, and allowlist `api.resend.com`.
+
+## Cost notes
+
+Each run issues a few API calls per query chunk, times up to
+`MAX_PAGES_PER_QUERY` pages. Recent-search tiers have a monthly
+post-read cap — watch usage in the developer portal if you widen
+`KEYWORDS`, `ACCOUNTS`, or the page cap.
