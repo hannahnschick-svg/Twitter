@@ -17,6 +17,10 @@ endpoint, dedupes results, and prints a JSON array of posts to stdout:
       ...
     ]
 
+"text" is the full post body: for long-form posts the API truncates the
+top-level `text` field, so the complete `note_tweet.text` is preferred
+whenever it's present.
+
 Requires the X_BEARER_TOKEN environment variable (an X API app with
 access to the recent-search endpoint -- Basic tier or higher).
 """
@@ -31,7 +35,7 @@ import requests
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
 
-SEARCH_URL = "https://api.twitter.com/2/tweets/search/recent"
+SEARCH_URL = f"https://{config.API_HOST}/2/tweets/search/recent"
 MAX_QUERY_LEN = 500  # stay under the API's 512-char limit with margin
 
 
@@ -67,16 +71,20 @@ def build_queries():
     return queries
 
 
-def search(bearer_token, query, start_time):
+def search(bearer_token, query, start_time, next_token=None):
     headers = {"Authorization": f"Bearer {bearer_token}"}
     params = {
         "query": query,
         "start_time": start_time,
         "max_results": config.MAX_RESULTS_PER_CALL,
-        "tweet.fields": "created_at,author_id",
+        # note_tweet carries the untruncated body of long-form posts.
+        "tweet.fields": "created_at,author_id,note_tweet",
         "expansions": "author_id",
         "user.fields": "username,name",
     }
+    if next_token:
+        params["next_token"] = next_token
+
     resp = requests.get(SEARCH_URL, headers=headers, params=params, timeout=30)
     if resp.status_code == 429:
         reset = int(resp.headers.get("x-rate-limit-reset", time.time() + 60))
@@ -86,6 +94,12 @@ def search(bearer_token, query, start_time):
         resp = requests.get(SEARCH_URL, headers=headers, params=params, timeout=30)
     resp.raise_for_status()
     return resp.json()
+
+
+def full_text(tweet):
+    """Prefer the complete long-form body over the truncated preview."""
+    note = tweet.get("note_tweet") or {}
+    return note.get("text") or tweet["text"]
 
 
 def main():
@@ -104,27 +118,36 @@ def main():
 
     posts_by_id = {}
     for label, query in build_queries():
-        try:
-            data = search(bearer_token, query, start_time)
-        except requests.HTTPError as e:
-            print(f"Query failed ({label}): {e} -- {e.response.text}", file=sys.stderr)
-            continue
+        next_token = None
+        for _ in range(config.MAX_PAGES_PER_QUERY):
+            try:
+                data = search(bearer_token, query, start_time, next_token)
+            except requests.HTTPError as e:
+                print(
+                    f"Query failed ({label}): {e} -- {e.response.text}",
+                    file=sys.stderr,
+                )
+                break
 
-        users = {u["id"]: u for u in data.get("includes", {}).get("users", [])}
-        for tweet in data.get("data", []):
-            if tweet["id"] in posts_by_id:
-                continue
-            user = users.get(tweet.get("author_id"), {})
-            username = user.get("username", "i")
-            posts_by_id[tweet["id"]] = {
-                "id": tweet["id"],
-                "url": f"https://x.com/{username}/status/{tweet['id']}",
-                "author": username,
-                "author_name": user.get("name", ""),
-                "text": tweet["text"],
-                "created_at": tweet.get("created_at"),
-                "matched": label,
-            }
+            users = {u["id"]: u for u in data.get("includes", {}).get("users", [])}
+            for tweet in data.get("data", []):
+                if tweet["id"] in posts_by_id:
+                    continue
+                user = users.get(tweet.get("author_id"), {})
+                username = user.get("username", "i")
+                posts_by_id[tweet["id"]] = {
+                    "id": tweet["id"],
+                    "url": f"https://x.com/{username}/status/{tweet['id']}",
+                    "author": username,
+                    "author_name": user.get("name", ""),
+                    "text": full_text(tweet),
+                    "created_at": tweet.get("created_at"),
+                    "matched": label,
+                }
+
+            next_token = data.get("meta", {}).get("next_token")
+            if not next_token:
+                break
 
     posts = sorted(posts_by_id.values(), key=lambda p: p["created_at"] or "", reverse=True)
     print(json.dumps(posts, indent=2))

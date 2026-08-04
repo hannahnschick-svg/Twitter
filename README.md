@@ -28,9 +28,8 @@ standalone thought-leadership take -- plus a short push notification.
      re-verified before inclusion
    - one standalone "thought leadership" take per digest, not tied to
      any single post
-5. The full digest is emailed to `hannahschick01@gmail.com` via
-   `scripts/send_email.py` (Gmail SMTP with an App Password -- see
-   setup below), and a short push notification points to it.
+5. The full digest is emailed via `scripts/send_email.py` (Resend HTTPS
+   API -- see setup below), and a short push notification points to it.
 
 ### Editing the routine
 
@@ -59,31 +58,69 @@ higher). Steps:
 
 ### 2. Set the token
 
-Add it as an environment variable named `X_BEARER_TOKEN` in this
+Add it as an environment variable named `X_BEARER_TOKEN` in the cloud
 environment's configuration (not in chat, not committed to the repo).
 
-### 3. Test manually
+### 3. Set up email delivery
+
+Delivery uses the **Resend** HTTPS API rather than SMTP. This is not a
+preference -- the cloud sandbox has no direct network egress, so a raw
+socket to `smtp.gmail.com:465` fails at the network layer no matter what
+is allowlisted. Only HTTPS-through-the-proxy works, which rules out
+`smtplib` entirely.
+
+1. Sign up at resend.com and create an API key (the free tier is far
+   more than one email a day needs).
+2. Add these environment variables alongside `X_BEARER_TOKEN`:
+   - `RESEND_API_KEY` -- the key from step 1
+   - `EMAIL_TO` -- where the digest should land
+   - `EMAIL_FROM` -- optional. Defaults to `onboarding@resend.dev`,
+     which Resend permits only for sending to your own account address.
+     To send anywhere else, verify a domain in Resend and use an address
+     on it.
+
+### 4. Allow the required domains
+
+The environment's network access defaults to a **Trusted** allowlist that
+excludes both of the hosts this project calls. Open the environment
+settings, set **Network access** to **Custom**, tick *"Also include
+default list of common package managers"*, and add:
+
+```
+api.twitter.com
+api.resend.com
+```
+
+Add `api.x.com` too if you switch `config.API_HOST` (see Customizing).
+Anything missing here fails with `403` on the proxy's CONNECT tunnel,
+which looks like an auth error but isn't -- verify with:
+
+```bash
+curl -sS -o /dev/null https://api.twitter.com/2/tweets/search/recent
+```
+
+A `401` means the host is reachable (good). `CONNECT tunnel failed,
+response 403` means it isn't allowlisted.
+
+### 5. Test manually
 
 ```bash
 pip install -r requirements.txt
-export X_BEARER_TOKEN=xxxx   # or rely on the environment-level var
-python3 scripts/x_longevity_search.py
+python3 scripts/x_longevity_search.py > work/x-posts-test.json
+python3 -m json.tool work/x-posts-test.json > /dev/null && echo "valid JSON"
 ```
 
-This prints a JSON array of matched posts to stdout. If `X_BEARER_TOKEN`
-is missing, it exits with an error explaining what's needed.
+This writes a JSON array of matched posts. If `X_BEARER_TOKEN` is
+missing, it exits with an error explaining what's needed.
 
-### 4. Enable the daily routine
+### 6. Enable the daily routine
 
-A Routine named **"Daily longevity digest"** has already been created,
-firing at 8am ET (12:00 UTC) every day, but it's disabled until the
-token is set up. Once `X_BEARER_TOKEN` is in place, ask Claude to enable
-it, or use the trigger tools directly.
+A Routine named **"Daily longevity digest"** fires at 8am ET
+(12:00 UTC) daily. Its prompt lives in the Routines UI, not this repo.
 
 **DST note:** 12:00 UTC is 8am during Eastern Daylight Time (roughly
-March-November). When clocks fall back to EST in November, this will
-fire at 7am ET instead until the cron is adjusted to 13:00 UTC. Ask
-Claude to flip it around the DST changeover, or set a reminder.
+March-November). When clocks fall back to EST in November, this fires at
+7am ET until the cron is changed to 13:00 UTC.
 
 ## Customizing
 
@@ -95,10 +132,34 @@ Edit `config.py`:
   they're a starting point, not verified handles.
 - `LOOKBACK_HOURS` -- how far back each run searches (default 24).
 - `MAX_RESULTS_PER_CALL` -- API page size (10-100).
+- `MAX_PAGES_PER_QUERY` -- pages followed per query before stopping.
+  Each page is another billed call against the monthly post-read cap.
+- `API_HOST` -- `api.twitter.com` (default) or `api.x.com`. Both serve
+  the same v2 endpoints, but each must be allowlisted separately, and
+  only `api.twitter.com` is allowlisted today.
+- `EXTRA_FILTERS` -- currently English only, no retweets, no replies.
+
+### Long-form posts
+
+The search requests the `note_tweet` field and prefers it over the
+top-level `text`, because X truncates `text` for long-form posts. Without
+this the agent would draft from partial content without any sign it was
+truncated.
 
 ## Cost/rate-limit notes
 
 Each run issues a handful of API calls (one per chunk of keywords/
-accounts that fits under the query-length limit). Recent-search tiers
-have a monthly post-read cap -- keep an eye on usage in the developer
-portal, especially if you widen `KEYWORDS`/`ACCOUNTS` significantly.
+accounts that fits under the query-length limit, times up to
+`MAX_PAGES_PER_QUERY` pages). Recent-search tiers have a monthly
+post-read cap -- keep an eye on usage in the developer portal,
+especially if you widen `KEYWORDS`/`ACCOUNTS` or raise the page cap.
+
+## Saving drafts back to X
+
+The digest delivers drafts as text for you to review and post yourself.
+There is no API for X's native Drafts folder -- it's a client-only
+feature -- so the only way to populate it automatically is to drive a
+logged-in browser session, which this cloud environment cannot do (no
+signed-in session, and X actively detects automation, which risks
+security challenges on the account). Copy-pasting from the email is the
+supported path.

@@ -1,21 +1,35 @@
 #!/usr/bin/env python3
-"""Send a plain-text email via Gmail SMTP using an App Password.
+"""Email the digest via an HTTPS email API (Resend).
 
 Usage:
     python3 scripts/send_email.py --subject "Some subject" < body.txt
 
-Reads the email body from stdin. Requires these environment variables:
-    GMAIL_ADDRESS      -- the Gmail address to send from (and log in as)
-    GMAIL_APP_PASSWORD -- a Google App Password for that account
-                          (Google Account -> Security -> 2-Step Verification
-                          -> App Passwords; requires 2-Step Verification on)
-    EMAIL_TO           -- optional recipient; defaults to GMAIL_ADDRESS
+Reads the email body from stdin.
+
+Why HTTP and not SMTP: the cloud environment has no direct network
+egress -- all traffic is tunneled through an HTTPS CONNECT proxy. A raw
+socket to smtp.gmail.com:465 fails at the network layer regardless of
+domain allowlisting, so smtplib cannot work here. An HTTPS API call can.
+
+Required environment variables:
+    RESEND_API_KEY -- API key from https://resend.com (free tier is
+                      ample for one email a day)
+    EMAIL_TO       -- recipient address
+    EMAIL_FROM     -- sender address. Until you verify your own domain in
+                      Resend, use "onboarding@resend.dev", which Resend
+                      allows only for sending to your own account address.
+
+The environment must also allow outbound HTTPS to api.resend.com.
 """
 import argparse
+import json
 import os
-import smtplib
 import sys
-from email.mime.text import MIMEText
+
+import requests
+
+SEND_URL = "https://api.resend.com/emails"
+DEFAULT_FROM = "onboarding@resend.dev"
 
 
 def main():
@@ -23,28 +37,43 @@ def main():
     parser.add_argument("--subject", required=True)
     args = parser.parse_args()
 
-    sender = os.environ.get("GMAIL_ADDRESS")
-    app_password = os.environ.get("GMAIL_APP_PASSWORD")
-    if not sender or not app_password:
+    api_key = os.environ.get("RESEND_API_KEY")
+    recipient = os.environ.get("EMAIL_TO")
+    if not api_key or not recipient:
         print(
-            "ERROR: GMAIL_ADDRESS and/or GMAIL_APP_PASSWORD is not set. "
-            "See README.md for how to generate a Google App Password and "
-            "configure it.",
+            "ERROR: RESEND_API_KEY and/or EMAIL_TO is not set. See README.md "
+            "for how to configure email delivery.",
             file=sys.stderr,
         )
         sys.exit(1)
 
-    recipient = os.environ.get("EMAIL_TO", sender)
     body = sys.stdin.read()
+    if not body.strip():
+        print("ERROR: refusing to send an empty digest.", file=sys.stderr)
+        sys.exit(1)
 
-    msg = MIMEText(body, "plain")
-    msg["Subject"] = args.subject
-    msg["From"] = sender
-    msg["To"] = recipient
+    payload = {
+        "from": os.environ.get("EMAIL_FROM", DEFAULT_FROM),
+        "to": [recipient],
+        "subject": args.subject,
+        "text": body,
+    }
+    resp = requests.post(
+        SEND_URL,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        data=json.dumps(payload),
+        timeout=30,
+    )
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(sender, app_password)
-        server.sendmail(sender, [recipient], msg.as_string())
+    if resp.status_code >= 400:
+        print(
+            f"ERROR: send failed ({resp.status_code}): {resp.text}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     print(f"Sent to {recipient}: {args.subject}")
 

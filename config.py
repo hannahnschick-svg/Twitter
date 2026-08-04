@@ -35,11 +35,21 @@ ACCOUNTS = [
     "hubermanlab",
 ]
 
+# API host. api.twitter.com and api.x.com serve the same v2 endpoints, but
+# each must be on the cloud environment's network allowlist separately.
+# api.twitter.com is the current default because it's the one allowlisted;
+# switch to "api.x.com" only after adding that host to the allowlist too.
+API_HOST = "api.twitter.com"
+
 # How far back to look for posts, in hours.
 LOOKBACK_HOURS = 24
 
 # Max results to fetch per API call (10-100).
 MAX_RESULTS_PER_CALL = 100
 
-# English only, skip retweets/replies noise.
-EXTRA_FILTERS = "lang:en -is:retweet"
+# How many pages to follow per query before stopping. Each page is another
+# billed API call against your monthly post-read cap, so raise carefully.
+MAX_PAGES_PER_QUERY = 3
+
+# English only, no retweets, no replies.
+EXTRA_FILTERS = "lang:en -is:retweet -is:reply"
