@@ -249,6 +249,11 @@ function render(d) {
     app.appendChild(charts);
   }
 
+  if (d.studies && d.studies.items && d.studies.items.length) {
+    app.appendChild(sectionHead(d.studies.title, d.studies.meta));
+    d.studies.items.forEach((s) => app.appendChild(renderPaper(s)));
+  }
+
   if (d.learned) {
     app.appendChild(sectionHead(d.learned.title, d.learned.meta));
     d.learned.items.forEach((f) => app.appendChild(renderFinding(f)));
@@ -270,6 +275,13 @@ function render(d) {
     app.appendChild(sectionHead(d.lab.title, d.lab.meta));
     const grid = el("div", "lab-grid");
     d.lab.teams.forEach((t) => grid.appendChild(renderTeam(t)));
+    app.appendChild(grid);
+  }
+
+  if (d.bench && d.bench.teams && d.bench.teams.length) {
+    app.appendChild(sectionHead(d.bench.title, d.bench.meta));
+    const grid = el("div", "lab-grid");
+    d.bench.teams.forEach((t) => grid.appendChild(renderTeam(t)));
     app.appendChild(grid);
   }
 

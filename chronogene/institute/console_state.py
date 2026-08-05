@@ -28,6 +28,8 @@ def build(
     teams: list[dict[str, Any]],
     costs: dict[str, Any],
     answers_chart: dict[str, Any],
+    studies: list[dict[str, Any]] | None = None,
+    bench: list[dict[str, Any]] | None = None,
     sample: bool = True,
 ) -> dict[str, Any]:
     confirmed = ledger.confirmed()
@@ -85,6 +87,11 @@ def build(
                 {"count": dist["early"], "label": "Early. Suggestive only. Never the headline of a paper."},
             ],
         },
+        "studies": ({
+            "title": "Work in flight",
+            "meta": f"{len(studies)} running",
+            "items": studies,
+        } if studies else None),
         "learned": {"title": "What we learned", "meta": "Newest first", "items": learned_items},
         "papers": {
             "title": "Papers",
@@ -93,6 +100,11 @@ def build(
         },
         "costs": costs,
         "lab": {"title": "The lab right now", "meta": f"{len(teams)} working", "teams": teams},
+        "bench": ({
+            "title": "Instruments",
+            "meta": f"{sum(1 for b in bench if b['status'] == 'CONNECTED')} of {len(bench)} connected",
+            "teams": bench,
+        } if bench else None),
         "footer": (
             "**Nothing here leaves the building without you.** The lab cannot submit a "
             "paper, post a preprint, publish data, spend money, or contact anyone. It "

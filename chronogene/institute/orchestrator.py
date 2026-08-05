@@ -21,7 +21,9 @@ from typing import Any
 
 from . import agents, config, console_state
 from .datasets import geo, registry
+from .instruments import bench
 from .ledger import (CheckerVerdict, Finding, Ledger, Provenance, today_label)
+from .studies import Study, StudyBoard
 
 
 # --- JSON schemas for structured agent outputs -------------------------------
@@ -75,16 +77,21 @@ def build_team() -> dict[str, Any]:
 # --- One research cycle ------------------------------------------------------
 def run_cycle(*, sample: bool = True, live: bool = True) -> dict[str, Any]:
     ledger = Ledger.load()
+    board = StudyBoard.load()
+    bench.install()
     if not ledger.findings:
         _seed_demonstration(ledger)      # so the console always has substance
+    if not board.studies:
+        _seed_studies(board)
     ledger.day += 1
     team = build_team()
 
     # 1-5. Live research pass (only when both agents and GEO are reachable).
     if live and agents.online() and geo.available():
-        _live_pass(ledger, team)
+        _live_pass(ledger, team, board)
 
     ledger.save()
+    board.save()
 
     # 6. PI prose + framing.
     director_note = _daily_note(team["pi"], ledger)
@@ -104,14 +111,20 @@ def run_cycle(*, sample: bool = True, live: bool = True) -> dict[str, Any]:
         teams=teams,
         costs=costs,
         answers_chart=chart,
+        studies=[s.as_card() for s in board.open_studies()],
+        bench=bench.bench_status(),
         sample=sample,
     )
     console_state.write(state)
     return state
 
 
-def _live_pass(ledger: Ledger, team: dict[str, Any]) -> None:
-    """Fetch real public datasets, work up one candidate, and check it."""
+def _live_pass(ledger: Ledger, team: dict[str, Any], board: StudyBoard) -> None:
+    """Fetch real public datasets, work up one candidate, and check it.
+
+    Each pass is recorded as a Study so the board can watch it move through
+    commissioned -> running -> checking -> verdict on the dashboard.
+    """
     # Literature: pull a couple of real GEO series as raw material.
     series = []
     for term in registry.GEO_SEARCH_TERMS[:2]:
@@ -119,6 +132,13 @@ def _live_pass(ledger: Ledger, team: dict[str, Any]) -> None:
     if not series:
         return
     top = series[0]
+
+    study = board.add(Study(
+        id=board.next_id(), question=f"Re-analysis seeded by: {top.query}",
+        group="Epigenetics group", instrument="NCBI GEO",
+        note="Public datasets retrieved; working up a candidate claim."))
+    study.advance("running")
+    board.save()
     ds_context = "\n".join(
         f"- {s.accession} ({s.organism}, n={s.n_samples}, platform {s.gpl}): {s.title}"
         for s in series[:5]
@@ -136,7 +156,11 @@ def _live_pass(ledger: Ledger, team: dict[str, Any]) -> None:
                       "verdict_hint": "support"},
     )
     if claim.get("refused") or claim.get("parse_error"):
+        study.advance("failed", "The group could not produce a defensible claim.")
+        board.save()
         return
+    study.advance("checking", f"Claim written up: {claim['title'][:90]}")
+    board.save()
 
     prov = Provenance(
         accessions=[s.accession for s in series[:3] if s.accession],
@@ -172,6 +196,14 @@ def _live_pass(ledger: Ledger, team: dict[str, Any]) -> None:
         strength=claim.get("strength") if status == "confirmed" else None,
         team="Epigenetics group", day=ledger.day, verdicts=[verdict],
     ))
+
+    study.finding_id = fid
+    study.accessions = prov.accessions
+    study.advance(
+        "confirmed" if status == "confirmed" else
+        "ruled_out" if status == "ruled_out" else "failed",
+        verdict.reasoning[:160] or "Checker returned a verdict.")
+    board.save()
 
 
 # --- PI daily note -----------------------------------------------------------
@@ -342,6 +374,23 @@ _DEMO_NOTE = [
     "**Everything else is running.** Spend is tracking at about two thirds of the "
     "monthly ceiling. Nothing is broken.",
 ]
+
+
+def _seed_studies(board: StudyBoard) -> None:
+    """Two studies in flight, so 'Work in flight' is never empty on first run."""
+    a = board.add(Study(
+        id=board.next_id(),
+        question="Does the blood ageing-clock signal hold in liver tissue?",
+        group="Ageing group", instrument="NCBI GEO",
+        note="Three public series retrieved; analysis running."))
+    a.advance("running")
+    b = board.add(Study(
+        id=board.next_id(),
+        question="Re-test a widely cited longevity variant in an independent cohort.",
+        group="Genetics group", instrument="PubMed + NCBI GEO",
+        note="Candidate written up; with the checkers now."))
+    b.advance("running")
+    b.advance("checking")
 
 
 def _seed_demonstration(ledger: Ledger) -> None:

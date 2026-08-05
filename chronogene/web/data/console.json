@@ -1,7 +1,7 @@
 {
   "institute": "Chronogene Institute",
   "subtitle": "Board Console",
-  "generated_at": "Monday 03 August 2026 · 07:00",
+  "generated_at": "Wednesday 05 August 2026 · 07:00",
   "sample_banner": "SAMPLE DATA. NOTHING HERE IS A REAL RESULT.",
   "director_note": {
     "avatar": "CI",
@@ -175,6 +175,60 @@
       {
         "count": 2,
         "label": "Early. Suggestive only. Never the headline of a paper."
+      }
+    ]
+  },
+  "studies": {
+    "title": "Work in flight",
+    "meta": "2 running",
+    "items": [
+      {
+        "status": "RUNNING",
+        "meta": "NCBI GEO",
+        "title": "Does the blood ageing-clock signal hold in liver tissue?",
+        "stages": [
+          {
+            "name": "Commissioned",
+            "state": "done"
+          },
+          {
+            "name": "Running",
+            "state": "current"
+          },
+          {
+            "name": "Independent check",
+            "state": "pending"
+          },
+          {
+            "name": "Confirmed",
+            "state": "pending"
+          }
+        ],
+        "desc": "Three public series retrieved; analysis running."
+      },
+      {
+        "status": "INDEPENDENT CHECK",
+        "meta": "PubMed + NCBI GEO",
+        "title": "Re-test a widely cited longevity variant in an independent cohort.",
+        "stages": [
+          {
+            "name": "Commissioned",
+            "state": "done"
+          },
+          {
+            "name": "Running",
+            "state": "done"
+          },
+          {
+            "name": "Independent check",
+            "state": "current"
+          },
+          {
+            "name": "Confirmed",
+            "state": "pending"
+          }
+        ],
+        "desc": "Candidate written up; with the checkers now."
       }
     ]
   },
@@ -525,6 +579,30 @@
         "desc": "Three independent reviewers. They can stop any result and nobody here can overrule them.",
         "status": "RUNNING",
         "dot": "green"
+      }
+    ]
+  },
+  "bench": {
+    "title": "Instruments",
+    "meta": "2 of 3 connected",
+    "teams": [
+      {
+        "name": "NCBI GEO (public datasets)",
+        "desc": "Search and summarise public GEO series. Free; rate-limited without a key.",
+        "status": "CONNECTED",
+        "dot": "green"
+      },
+      {
+        "name": "PubMed (public literature)",
+        "desc": "Sweep the public literature for open, testable questions.",
+        "status": "CONNECTED",
+        "dot": "green"
+      },
+      {
+        "name": "Claude Science",
+        "desc": "Claude Science is not connected. Set CLAUDE_SCIENCE_MCP_URL + CLAUDE_SCIENCE_MCP_TOKEN (preferred) or CLAUDE_SCIENCE_API_URL + CLAUDE_SCIENCE_API_KEY.",
+        "status": "NOT CONNECTED",
+        "dot": "amber"
       }
     ]
   },

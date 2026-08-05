@@ -464,8 +464,9 @@ body {
   flex: none;
   text-transform: uppercase;
 }
-.status-badge.running { color: var(--teal); background: var(--teal-ghost); border: 1px solid var(--teal-dim); }
+.status-badge.running, .status-badge.connected { color: var(--teal); background: var(--teal-ghost); border: 1px solid var(--teal-dim); }
 .status-badge.held-up, .status-badge.at-limit { color: var(--amber); background: var(--amber-ghost); border: 1px solid var(--amber-border); }
+.status-badge.not-connected { color: var(--muted); background: rgba(255,255,255,0.02); border: 1px solid var(--border); }
 .status-badge .dot { margin-right: 6px; }
 
 /* ---------- Footer ---------- */
