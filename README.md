@@ -18,14 +18,35 @@ Each run produces:
 scripts/x_longevity_search.py   ->  work/posts.json
         (X API v2 recent search)
 
-agent, per SCHEDULED_PROMPT.md  ->  work/digest.md    (human review)
-        + tone_guide.md             work/drafts.json  (machine-readable)
+agent, per SCHEDULED_PROMPT.md  ->  digests/<date>/digest.md    (review)
+        + tone_guide.md             digests/<date>/drafts.json  (machine)
 
+scripts/send_email.py           ->  inbox
 scripts/save_x_drafts.py        ->  X Drafts folder
         (headed browser, save-only)
-
-scripts/send_email.py           ->  inbox  (optional, cloud runs)
 ```
+
+`digests/` is committed; `work/` is scratch and ignored.
+
+## Cloud and laptop, split by what each can do
+
+The cloud sandbox has no signed-in browser, so it cannot save into X's
+Drafts folder — that step needs your machine. But the scheduled work
+shouldn't depend on your laptop being open. So the two split:
+
+- **Cloud, 8am daily, laptop closed or not.** Search, filter, draft,
+  verify citations, commit `digests/<date>/` to the branch, email the
+  digest.
+- **Laptop, whenever you next open it.** Pull and push the drafts into X.
+
+```bash
+git pull
+python3 scripts/save_x_drafts.py --input digests/<date>/drafts.json --dry-run
+python3 scripts/save_x_drafts.py --input digests/<date>/drafts.json
+```
+
+If you never get to it, nothing is lost — the digest is in your inbox and
+committed to the repo.
 
 ## Local setup
 

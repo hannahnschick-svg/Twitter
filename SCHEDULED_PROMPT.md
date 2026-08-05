@@ -85,14 +85,18 @@ a statistic you aren't confident is accurate. Single tweet by default; a
 
 ## 4. Write both outputs
 
-**`work/digest.md`** — human-readable review copy. Thought-leadership take
-first, then each cluster with a short header, and under it every post's
-link, a one-line factual takeaway, and its labeled drafts. Threads list
-`Verified sources:` (title, journal, link/DOI) beneath them, not inside
-any tweet.
+Write to `digests/<YYYY-MM-DD>/` using today's date. This directory is
+committed, unlike `work/`, so a cloud run's drafts reach the laptop that
+saves them to X.
 
-**`work/drafts.json`** — machine-readable, for the draft saver. A JSON
-array using exactly these shapes:
+**`digests/<date>/digest.md`** — human-readable review copy.
+Thought-leadership take first, then each cluster with a short header, and
+under it every post's link, a one-line factual takeaway, and its labeled
+drafts. Threads list `Verified sources:` (title, journal, link/DOI)
+beneath them, not inside any tweet.
+
+**`digests/<date>/drafts.json`** — machine-readable, for the draft saver.
+A JSON array using exactly these shapes:
 
 ```json
 [
@@ -110,7 +114,42 @@ array using exactly these shapes:
 - Don't put the source link inside `text`; use `source_url` so it's
   appended consistently.
 
-## 5. Report
+Validate before moving on:
+
+```bash
+python3 -m json.tool digests/<date>/drafts.json > /dev/null
+```
+
+## 5. Commit the digest
+
+So the laptop can pick these up later:
+
+```bash
+git add digests/<date>
+git commit -m "Digest for <date>"
+git push -u origin claude/x-longevity-daily-agent-c8f9cg
+```
+
+Commit only `digests/`. Never commit `work/`, and never put the bearer
+token or any other credential in a commit.
+
+## 6. Email it
+
+```bash
+python3 scripts/send_email.py \
+  --subject "Longevity Digest -- <date>" < digests/<date>/digest.md
+```
+
+Uses `RESEND_API_KEY`, `EMAIL_TO`, and optionally `EMAIL_FROM`. If it
+fails, name the specific cause: a 403 on the CONNECT tunnel means
+`api.resend.com` isn't allowlisted, a 401 or 403 from Resend means the key
+is wrong, and a 422 usually means `EMAIL_FROM` isn't a verified sender.
+Report the failure rather than silently skipping — the digest is still
+committed, so it isn't lost.
+
+Skip this step entirely when running locally.
+
+## 7. Report
 
 Summarize what you produced: counts by type, which clusters, and any
 citation you had to cut or soften during verification. Say so explicitly
@@ -120,13 +159,15 @@ Keep your own framing factual and free of filler. This is a scan report
 with drafts attached, not an essay. The drafts are the only place the
 in-voice writing happens.
 
-## 6. Saving to X (separate, manual step)
+## 8. Saving to X (separate, manual, on the laptop)
 
-Do not run the draft saver yourself. Once the drafts are reviewed:
+Do not run the draft saver yourself — it needs a signed-in browser, which
+a cloud run doesn't have. Once the drafts are reviewed, on the laptop:
 
 ```bash
-python3 scripts/save_x_drafts.py --input work/drafts.json --dry-run
-python3 scripts/save_x_drafts.py --input work/drafts.json
+git pull
+python3 scripts/save_x_drafts.py --input digests/<date>/drafts.json --dry-run
+python3 scripts/save_x_drafts.py --input digests/<date>/drafts.json
 ```
 
 It opens a visible browser, saves each draft, and never posts.

@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
+.venv/
+
+# Scratch for a single run. Durable output is committed under digests/.
 work/
