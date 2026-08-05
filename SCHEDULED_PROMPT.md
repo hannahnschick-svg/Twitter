@@ -137,8 +137,13 @@ token or any other credential in a commit.
 
 ```bash
 python3 scripts/send_email.py \
-  --subject "Longevity Digest -- <date>" < digests/<date>/digest.md
+  --subject "Tweets are ready" < digests/<date>/digest.md
 ```
+
+The subject is exactly `Tweets are ready` every day, so it's filterable.
+The body is the full digest: every draft in full, each with the link to
+the post that prompted it, so it can be read and acted on from a phone
+without opening anything else.
 
 Uses `RESEND_API_KEY`, `EMAIL_TO`, and optionally `EMAIL_FROM`. If it
 fails, name the specific cause: a 403 on the CONNECT tunnel means
