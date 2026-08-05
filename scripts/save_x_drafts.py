@@ -195,18 +195,27 @@ HANDLERS = {
 }
 
 
-def ensure_logged_in(page):
+def ensure_logged_in(page, interactive=True):
     page.goto("https://x.com/home", wait_until="domcontentloaded")
     time.sleep(3)
-    if "login" in page.url or "i/flow/login" in page.url:
-        print(
-            "\n  Not logged in. Log in as @descidecoded in the browser window,\n"
-            "  then press Enter here to continue.",
-            file=sys.stderr,
+    if "login" not in page.url and "i/flow/login" not in page.url:
+        return
+
+    if not interactive:
+        raise RuntimeError(
+            "Not logged in, and running unattended so I can't wait for you. "
+            "Run once by hand without --no-wait to sign in; the session then "
+            "persists for scheduled runs."
         )
-        input()
-        page.goto("https://x.com/home", wait_until="domcontentloaded")
-        time.sleep(2)
+
+    print(
+        "\n  Not logged in. Log in as @descidecoded in the browser window,\n"
+        "  then press Enter here to continue.",
+        file=sys.stderr,
+    )
+    input()
+    page.goto("https://x.com/home", wait_until="domcontentloaded")
+    time.sleep(2)
 
 
 def main():
@@ -221,6 +230,12 @@ def main():
         "--headless",
         action="store_true",
         help="Run without a visible window. Not recommended for the first run.",
+    )
+    parser.add_argument(
+        "--no-wait",
+        action="store_true",
+        help="Close the browser immediately instead of waiting for Enter. "
+        "Required when run unattended, e.g. from launchd.",
     )
     args = parser.parse_args()
 
@@ -251,7 +266,7 @@ def main():
             viewport={"width": 1280, "height": 900},
         )
         page = context.pages[0] if context.pages else context.new_page()
-        ensure_logged_in(page)
+        ensure_logged_in(page, interactive=not args.no_wait)
 
         for i, draft in enumerate(drafts, 1):
             kind = draft.get("type")
@@ -278,8 +293,9 @@ def main():
                 print(f"  [{i}] {kind}: {err}", file=sys.stderr)
 
         print(f"\nVerify them at {DRAFTS_URL} -- reload the page and check twice.")
-        print("Press Enter to close the browser.")
-        input()
+        if not args.no_wait:
+            print("Press Enter to close the browser.")
+            input()
         context.close()
 
     if failed:

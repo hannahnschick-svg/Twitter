@@ -35,18 +35,34 @@ Drafts folder — that step needs your machine. But the scheduled work
 shouldn't depend on your laptop being open. So the two split:
 
 - **Cloud, 8am daily, laptop closed or not.** Search, filter, draft,
-  verify citations, commit `digests/<date>/` to the branch, email the
-  digest.
-- **Laptop, whenever you next open it.** Pull and push the drafts into X.
+  verify citations, commit `digests/<date>/` to the branch, and email the
+  digest with the subject `Tweets are ready`.
+- **Laptop, unattended.** A launchd agent pulls the newest digest and
+  saves its drafts into X.
+
+Install the local half once:
 
 ```bash
-git pull
-python3 scripts/save_x_drafts.py --input digests/<date>/drafts.json --dry-run
+# Sign in once, so the browser profile holds the session.
 python3 scripts/save_x_drafts.py --input digests/<date>/drafts.json
+
+# Then schedule it.
+bash scripts/install_local_schedule.sh
 ```
 
-If you never get to it, nothing is lost — the digest is in your inbox and
-committed to the repo.
+It runs at 08:05 local. If the Mac is asleep or off then, launchd runs it
+at the next wake, so a closed laptop delays the drafts rather than
+skipping the day. Each digest is saved once — waking repeatedly won't
+duplicate drafts.
+
+```bash
+launchctl kickstart -k gui/$(id -u)/com.descidecoded.xdrafts  # run now
+tail -f ~/Library/Logs/com.descidecoded.xdrafts.log           # watch
+bash scripts/install_local_schedule.sh --remove               # uninstall
+```
+
+If the laptop stays shut for days, nothing is lost — every digest is in
+your inbox and committed to the repo, and the next run saves the newest.
 
 ## Local setup
 
